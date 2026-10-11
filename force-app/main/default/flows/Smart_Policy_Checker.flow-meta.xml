@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>62.0</apiVersion>
+    <assignments>
+        <name>Set_Over_Budget</name>
+        <label>Set Over Budget</label>
+        <locationX>50</locationX>
+        <locationY>431</locationY>
+        <assignmentItems>
+            <assignToReference>$Record.Policy_Status__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Over Budget</stringValue>
+            </value>
+        </assignmentItems>
+    </assignments>
+    <assignments>
+        <name>Set_Within_Policy</name>
+        <label>Set Within Policy</label>
+        <locationX>314</locationX>
+        <locationY>431</locationY>
+        <assignmentItems>
+            <assignToReference>$Record.Policy_Status__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Within Policy</stringValue>
+            </value>
+        </assignmentItems>
+    </assignments>
+    <decisions>
+        <name>Check_Budget</name>
+        <label>Check Budget</label>
+        <locationX>182</locationX>
+        <locationY>323</locationY>
+        <defaultConnector>
+            <targetReference>Set_Within_Policy</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Within Policy</defaultConnectorLabel>
+        <rules>
+            <name>Over_Budget</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Estimated_Budget__c</leftValueReference>
+                <operator>GreaterThan</operator>
+                <rightValue>
+                    <elementReference>$Record.Budget_Limit__c</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Set_Over_Budget</targetReference>
+            </connector>
+            <label>Over Budget</label>
+        </rules>
+    </decisions>
+    <description>Smart Policy Checker: sets Policy Status to Over Budget or Within Policy whenever a Travel Request is created or updated.</description>
+    <environments>Default</environments>
+    <interviewLabel>Smart Policy Checker {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Smart Policy Checker</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <start>
+        <locationX>56</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Check_Budget</targetReference>
+        </connector>
+        <object>Travel_Request__c</object>
+        <recordTriggerType>CreateAndUpdate</recordTriggerType>
+        <triggerType>RecordBeforeSave</triggerType>
+    </start>
+    <status>Active</status>
+</Flow>

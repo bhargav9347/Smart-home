@@ -1,0 +1,7 @@
+# Salesforce CLI / VS Code local files
+.sf/
+.sfdx/
+.localdevserver/
+.vscode/
+node_modules/
+*.log

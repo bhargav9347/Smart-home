@@ -1,0 +1,393 @@
+<template>
+    <div class="shell">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="brand">
+                <lightning-icon icon-name="custom:custom20" size="small"></lightning-icon>
+                <span>TravelEasy</span>
+            </div>
+            <ul class="nav">
+                <template for:each={navItems} for:item="item">
+                    <li key={item.view}>
+                        <button class={item.cls} data-view={item.view} onclick={handleNav}>
+                            <lightning-icon icon-name={item.icon} size="x-small" variant="inverse"></lightning-icon>
+                            <span class="nav-label">{item.label}</span>
+                            <template lwc:if={item.badge}>
+                                <span class="nav-badge">{item.badge}</span>
+                            </template>
+                        </button>
+                    </li>
+                </template>
+            </ul>
+        </nav>
+
+        <main class="content">
+            <template lwc:if={loading}>
+                <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+            </template>
+
+            <!-- ================= HOME ================= -->
+            <template lwc:if={isHome}>
+                <section class="hero">
+                    <div class="hero-copy">
+                        <h1 class="hero-title">{greeting}, {firstName}!</h1>
+                        <p class="hero-sub">Smarter travel. Better decisions.</p>
+                        <p class="hero-text">
+                            Smart Policy Checker automatically checks your travel and expense requests against
+                            company policies before approval.
+                        </p>
+                    </div>
+                    <div class="hero-quote">
+                        <lightning-icon icon-name="custom:custom20" size="small"></lightning-icon>
+                        <span>"Stay compliant. Travel worry-free."</span>
+                    </div>
+                </section>
+
+                <div class="stats">
+                    <template for:each={stats} for:item="s">
+                        <div key={s.label} class="card stat">
+                            <div class={s.iconCls}>
+                                <lightning-icon icon-name={s.icon} size="small" variant="inverse"></lightning-icon>
+                            </div>
+                            <div>
+                                <p class="stat-label">{s.label}</p>
+                                <p class="stat-value">{s.value}</p>
+                                <p class="stat-note">{s.note}</p>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <div class="home-grid">
+                    <div class="card">
+                        <h2 class="card-title">Quick Actions</h2>
+                        <div class="qa-grid">
+                            <template for:each={quickActions} for:item="q">
+                                <button key={q.view} class="qa" data-view={q.view} onclick={handleNav}>
+                                    <span class={q.iconCls}>
+                                        <lightning-icon icon-name={q.icon} size="small" variant="inverse"></lightning-icon>
+                                    </span>
+                                    <span class="qa-label">{q.label}</span>
+                                </button>
+                            </template>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-head">
+                            <h2 class="card-title">Recent Requests</h2>
+                            <button class="link" data-view="my" onclick={handleNav}>View All</button>
+                        </div>
+                        <template lwc:if={hasRequests}>
+                            <div class="table-wrap">
+                                <table class="te-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Request Number</th>
+                                            <th>Destination</th>
+                                            <th>Travel Dates</th>
+                                            <th class="num">Amount</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <template for:each={recentRequests} for:item="r">
+                                            <tr key={r.id}>
+                                                <td><button class="link" data-id={r.id} onclick={openRequest}>{r.name}</button></td>
+                                                <td>{r.destination}</td>
+                                                <td>{r.shortDates}</td>
+                                                <td class="num">{r.amountText}</td>
+                                                <td><span class={r.statusClass}>{r.displayStatus}</span></td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </template>
+                        <template lwc:else>
+                            <p class="empty">No travel requests yet.</p>
+                        </template>
+                    </div>
+
+                    <div class="card">
+                        <h2 class="card-title">Policy Alerts</h2>
+                        <template lwc:if={hasOverBudget}>
+                            <div class="alert alert_red">
+                                <lightning-icon icon-name="utility:warning" size="small" variant="error"></lightning-icon>
+                                <div>
+                                    <p class="alert-title">{overBudgetTitle}</p>
+                                    <template for:each={overBudgetTop} for:item="o">
+                                        <p key={o.id} class="alert-line">
+                                            <button class="link" data-id={o.id} onclick={openRequest}>{o.name}</button>
+                                            ({o.destination}) - {o.amountText}
+                                        </p>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+                        <template lwc:else>
+                            <div class="alert alert_green">
+                                <lightning-icon icon-name="utility:success" size="small" variant="success"></lightning-icon>
+                                <div>
+                                    <p class="alert-title">No budget violations</p>
+                                    <p class="alert-line">Every request is within the limit.</p>
+                                </div>
+                            </div>
+                        </template>
+                        <div class="alert alert_amber">
+                            <lightning-icon icon-name="utility:success" size="small" variant="warning"></lightning-icon>
+                            <div>
+                                <p class="alert-title">0 requests with invalid dates</p>
+                                <p class="alert-line">All good! The validation rule blocks them.</p>
+                            </div>
+                        </div>
+                        <div class="alert alert_blue">
+                            <lightning-icon icon-name="utility:info" size="small"></lightning-icon>
+                            <div>
+                                <p class="alert-title">Company Policy</p>
+                                <ul class="policy-list">
+                                    <li>Maximum travel budget: {limitText}</li>
+                                    <li>End date must be on or after start date</li>
+                                    <li>Requests exceeding budget are flagged before approval</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </template>
+
+            <!-- ================= NEW REQUEST ================= -->
+            <template lwc:elseif={isNew}>
+                <div class="page-head">
+                    <h1 class="page-title">New Travel Request</h1>
+                    <p class="page-sub">Fill in the details below. Policy will be checked automatically.</p>
+                </div>
+                <div class="card form-card">
+                    <h2 class="card-title">Travel Details</h2>
+                    <div class="form-grid">
+                        <lightning-input label="Employee Name" value={userName} disabled></lightning-input>
+                        <lightning-combobox label="Travel Type" options={modeOptions} value={form.mode}
+                            data-field="mode" onchange={handleField}></lightning-combobox>
+                        <lightning-input type="date" label="Travel Start Date" required value={form.startDate}
+                            data-field="startDate" onchange={handleField}></lightning-input>
+                        <lightning-input type="date" label="Travel End Date" required value={form.endDate}
+                            data-field="endDate" onchange={handleField}></lightning-input>
+                        <lightning-input type="number" label="Estimated Budget (₹)" required min="0" value={form.budget}
+                            data-field="budget" onchange={handleField}></lightning-input>
+                        <lightning-input label="Purpose of Travel" value={form.purpose}
+                            data-field="purpose" onchange={handleField}></lightning-input>
+                        <lightning-input class="span-2" label="Destination" required value={form.destination}
+                            data-field="destination" onchange={handleField}></lightning-input>
+                    </div>
+
+                    <h2 class="card-title">Policy Check Result</h2>
+                    <div class={formCheck.cls}>
+                        <lightning-icon icon-name={formCheck.icon} size="small" variant={formCheck.variant}></lightning-icon>
+                        <div>
+                            <p class="result-title">{formCheck.title}</p>
+                            <p>{formCheck.message}</p>
+                        </div>
+                    </div>
+
+                    <div class="actions">
+                        <lightning-button label="Cancel" data-view="home" onclick={handleNav}></lightning-button>
+                        <lightning-button label="Save as Draft" onclick={saveDraft} disabled={saveDisabled}></lightning-button>
+                        <lightning-button variant="brand" label="Submit Request" onclick={submitRequest} disabled={saveDisabled}></lightning-button>
+                    </div>
+                </div>
+            </template>
+
+            <!-- ================= MY REQUESTS ================= -->
+            <template lwc:elseif={isMy}>
+                <div class="page-head">
+                    <h1 class="page-title">My Requests</h1>
+                </div>
+                <div class="card">
+                    <lightning-input type="search" label="Search requests" variant="label-hidden"
+                        placeholder="Search requests..." value={search} onchange={handleSearch}></lightning-input>
+                    <div class="chips">
+                        <template for:each={filterTabs} for:item="f">
+                            <button key={f.key} class={f.cls} data-key={f.key} onclick={handleFilter}>{f.label}</button>
+                        </template>
+                    </div>
+                    <template lwc:if={hasFiltered}>
+                        <div class="table-wrap">
+                            <table class="te-table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Destination</th>
+                                        <th>Dates</th>
+                                        <th class="num">Amount</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template for:each={filteredRequests} for:item="r">
+                                        <tr key={r.id}>
+                                            <td><button class="link" data-id={r.id} onclick={openRequest}>{r.name}</button></td>
+                                            <td>{r.destination}</td>
+                                            <td>{r.shortDates}</td>
+                                            <td class="num">{r.amountText}</td>
+                                            <td><span class={r.statusClass}>{r.displayStatus}</span></td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </template>
+                    <template lwc:else>
+                        <p class="empty">No requests match.</p>
+                    </template>
+                </div>
+            </template>
+
+            <!-- ================= APPROVALS ================= -->
+            <template lwc:elseif={isApprovals}>
+                <div class="page-head">
+                    <h1 class="page-title">Approvals</h1>
+                    <p class="page-sub">Travel requests waiting for your decision.</p>
+                </div>
+                <div class="card">
+                    <template lwc:if={hasApprovals}>
+                        <div class="table-wrap">
+                            <table class="te-table">
+                                <thead>
+                                    <tr>
+                                        <th>Request</th>
+                                        <th>Employee</th>
+                                        <th>Destination</th>
+                                        <th>Dates</th>
+                                        <th class="num">Amount</th>
+                                        <th>Policy</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template for:each={approvals} for:item="r">
+                                        <tr key={r.id}>
+                                            <td>{r.name}</td>
+                                            <td>{r.employeeName}</td>
+                                            <td>{r.destination}</td>
+                                            <td>{r.shortDates}</td>
+                                            <td class="num">{r.amountText}</td>
+                                            <td><span class={r.policyClass}>{r.policyLabel}</span></td>
+                                            <td><button class="btn-small" data-id={r.id} onclick={openRequest}>Review</button></td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </template>
+                    <template lwc:else>
+                        <p class="empty">Nothing waiting for you. 🎉</p>
+                    </template>
+                </div>
+            </template>
+
+            <!-- ================= DETAIL ================= -->
+            <template lwc:elseif={isDetail}>
+                <div class="page-head page-head_back">
+                    <button class="back" onclick={goBack} title="Back">
+                        <lightning-icon icon-name="utility:back" size="x-small"></lightning-icon>
+                    </button>
+                    <h1 class="page-title">Request Detail</h1>
+                </div>
+                <div class="card detail-card">
+                    <div class="detail-head">
+                        <div class="detail-icon">
+                            <lightning-icon icon-name="utility:description" size="small" variant="inverse"></lightning-icon>
+                        </div>
+                        <div>
+                            <p class="detail-title">{d.name} <span class={d.statusClass}>{d.displayStatus}</span></p>
+                            <p class="muted">{d.destination} | {d.datesText}</p>
+                            <p class="muted">{d.amountText} | {d.employeeName}</p>
+                        </div>
+                    </div>
+
+                    <div class="tabs">
+                        <template for:each={detailTabs} for:item="t">
+                            <button key={t.key} class={t.cls} data-key={t.key} onclick={handleTab}>{t.label}</button>
+                        </template>
+                    </div>
+
+                    <template lwc:if={showDetailsTab}>
+                        <dl class="info">
+                            <dt>Request Number</dt><dd>{d.name}</dd>
+                            <dt>Employee Name</dt><dd>{d.employeeName}</dd>
+                            <dt>Destination</dt><dd>{d.destination}</dd>
+                            <dt>Travel Type</dt><dd>{d.mode}</dd>
+                            <dt>Travel Dates</dt><dd>{d.datesText}</dd>
+                            <dt>Estimated Budget</dt><dd>{d.amountText}</dd>
+                            <dt>Purpose</dt><dd>{d.purpose}</dd>
+                            <dt>Approval Status</dt><dd>{d.approvalStatus}</dd>
+                        </dl>
+                        <button class="link" onclick={openRecord}>Open full Salesforce record</button>
+                    </template>
+                    <template lwc:elseif={showPolicyTab}>
+                        <h3 class="section-title">Policy Check Result</h3>
+                        <div class={policyResult.cls}>
+                            <lightning-icon icon-name={policyResult.icon} size="small" variant={policyResult.variant}></lightning-icon>
+                            <div>
+                                <p class="result-title">{policyResult.title}</p>
+                                <p>{policyResult.message}</p>
+                            </div>
+                        </div>
+                        <h3 class="section-title">Policy Validation</h3>
+                        <ul class="rules">
+                            <template for:each={policyRules} for:item="rule">
+                                <li key={rule.key} class="rule">
+                                    <lightning-icon icon-name={rule.icon} size="x-small" variant={rule.variant}></lightning-icon>
+                                    <div class="rule-text">
+                                        <p class="rule-label">{rule.label}</p>
+                                        <p class="muted">{rule.value}</p>
+                                    </div>
+                                    <span class={rule.cls}>{rule.text}</span>
+                                </li>
+                            </template>
+                        </ul>
+                    </template>
+                    <template lwc:else>
+                        <template lwc:if={hasHistory}>
+                            <ul class="history">
+                                <template for:each={history} for:item="h">
+                                    <li key={h.id} class="history-item">
+                                        <span class={h.cls}>{h.label}</span>
+                                        <div>
+                                            <p class="rule-label">{h.actor}</p>
+                                            <p class="muted">{h.when}</p>
+                                            <template lwc:if={h.comments}>
+                                                <p class="comment">"{h.comments}"</p>
+                                            </template>
+                                        </div>
+                                    </li>
+                                </template>
+                            </ul>
+                        </template>
+                        <template lwc:else>
+                            <p class="empty">Not submitted for approval yet.</p>
+                        </template>
+                    </template>
+
+                    <template lwc:if={canDecide}>
+                        <div class="decision">
+                            <h3 class="section-title">Your Decision</h3>
+                            <lightning-textarea label="Comments" value={comment} onchange={handleComment}></lightning-textarea>
+                            <div class="actions">
+                                <lightning-button variant="destructive-text" label="Reject" onclick={reject} disabled={busy}></lightning-button>
+                                <lightning-button variant="success" label="Approve" onclick={approve} disabled={busy}></lightning-button>
+                            </div>
+                        </div>
+                    </template>
+                    <template lwc:if={canSubmit}>
+                        <div class="actions">
+                            <lightning-button variant="brand" label="Submit for Approval" onclick={submitExisting} disabled={busy}></lightning-button>
+                        </div>
+                    </template>
+
+                    <button class="wide-btn" onclick={goBack}>Back to Requests</button>
+                </div>
+            </template>
+        </main>
+    </div>
+</template>
